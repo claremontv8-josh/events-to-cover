@@ -3,7 +3,7 @@
   "name": "events-to-cover",
   "main": "src/worker.js",
   "compatibility_date": "2026-06-01",
-  "assets": { "directory": "./public", "binding": "ASSETS" }
-  // Picks storage: once the KV namespace exists, add its ID here, e.g.
-  // ,"kv_namespaces": [{ "binding": "CLAIMS", "id": "<namespace id>" }]
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  // Picks storage: the "ccmc-claims" KV namespace.
+  "kv_namespaces": [{ "binding": "CLAIMS", "id": "0d539cd0558b444b8aed79c9ee5ea6aa" }]
 }
