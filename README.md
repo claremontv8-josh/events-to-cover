@@ -16,7 +16,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 
 ## One-time setup on Cloudflare (about 10 minutes)
 
-1. **Create the Pages project.** In the Cloudflare dashboard go to **Workers & Pages → Create application**, switch to the **Pages** tab (not the default Workers option), then **Connect to Git** and choose `events-to-cover`. If you see *"Bindings cannot be added to a Worker that only has static assets"* later, you created a Worker by mistake: delete it and start again from the Pages tab. Set:
+1. **Create the Pages project.** In the Cloudflare dashboard go to **Workers & Pages → Create application**, and look for the **Pages** option, which Cloudflare now labels **legacy Pages** (the main Create flow defaults to Workers). Then **Connect to Git** and choose `events-to-cover`. If you see *"Bindings cannot be added to a Worker that only has static assets"* later, you created a Worker by mistake: delete it and start again from the Pages tab. Set:
    - Framework preset: **None**
    - Build command: *(leave empty)*
    - Build output directory: **`public`**
