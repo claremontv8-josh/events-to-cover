@@ -131,6 +131,13 @@ const store = {
   set(k,v){ try { localStorage.setItem(k, v); } catch {} }
 };
 $("me").value = store.get("ccmc-name");
+// Read a JSON reply; if the server sent something else (an HTML error page, an empty body), say so plainly.
+async function readJson(r){
+  const text = await r.text();
+  try { return JSON.parse(text); }
+  catch { return { error: r.status === 404 ? "The picks service isn't deployed (no /api/claims)." : `The server sent an unexpected reply (HTTP ${r.status}).` }; }
+}
+
 // Only redraw the "You're covering" box on name changes; redrawing the whole list here
 // would swap out a Pick button mid-click when someone types their name and clicks straight away.
 $("me").addEventListener("input", () => { store.set("ccmc-name", $("me").value.trim()); renderMine(); });
@@ -188,7 +195,7 @@ function render(){
 async function loadClaims(){
   try {
     const r = await fetch("/api/claims", {cache:"no-store"});
-    const data = await r.json();
+    const data = await readJson(r);
     if (!r.ok) throw new Error(data.error || "Couldn't load picks.");
     claims = data.claims || {}; claimsOk = true;
     if ($("notice").dataset.src === "claims") showNotice("");
@@ -209,7 +216,7 @@ document.addEventListener("click", async ev => {
   try {
     const r = await fetch("/api/claims", {method:"POST", headers:{"content-type":"application/json"},
       body: JSON.stringify({id: btn.dataset.id, name, action: btn.dataset.act})});
-    const data = await r.json();
+    const data = await readJson(r);
     if (data.claims) claims = data.claims;
     showNotice(r.ok ? "" : (data.error || "That didn't save. Try again."));
   } catch {

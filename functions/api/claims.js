@@ -15,7 +15,7 @@ const json = (data, status = 200) =>
 function missingBinding(env) {
   if (!env.CLAIMS) {
     return json(
-      { error: "Claims storage isn't set up. In Cloudflare, bind a KV namespace named CLAIMS to this Pages project, then redeploy." },
+      { error: "Picks storage isn't connected yet. Add a KV namespace bound as CLAIMS (see the README), then redeploy." },
       500
     );
   }

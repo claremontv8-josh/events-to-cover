@@ -12,6 +12,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
 | `public/_headers` | Keeps browsers from caching an old event list |
 | `functions/api/claims.js` | The small server function that saves and reads picks |
+| `src/worker.js`, `wrangler.jsonc` | Used instead when the site is deployed as a Cloudflare Worker |
 
 ## One-time setup on Cloudflare (about 10 minutes)
 
@@ -26,6 +27,17 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 4. **Redeploy** so the binding takes effect: **Deployments → … on the latest deployment → Retry deployment**.
 
 Until step 3 is done, the board still shows events but displays a notice that picks aren't available.
+
+## If the site was created as a Worker (address ends in `.workers.dev`)
+
+The repo also works as a Cloudflare Worker: `wrangler.jsonc` and `src/worker.js` handle that, and the board deploys from `main` the same way. The one difference is how picks storage is connected. A Worker reads its bindings from `wrangler.jsonc`, so the dashboard's Bindings page won't take them. Instead:
+
+1. **Storage & Databases → KV → Create a namespace** named `ccmc-claims`.
+2. Copy the namespace's **ID** from the KV list.
+3. In `wrangler.jsonc`, replace the commented `kv_namespaces` lines with
+   `"kv_namespaces": [{ "binding": "CLAIMS", "id": "<that ID>" }]` (add a comma after the `assets` line), and commit. The Worker redeploys on its own.
+
+Cloudflare Access (below) works the same for Workers: use the `.workers.dev` address as the application domain.
 
 ## Keep it internal: Cloudflare Access (free up to 50 users)
 

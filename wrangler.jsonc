@@ -1,0 +1,9 @@
+{
+  // Deploy settings for the Cloudflare Worker "events-to-cover".
+  "name": "events-to-cover",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-06-01",
+  "assets": { "directory": "./public", "binding": "ASSETS" }
+  // Picks storage: once the KV namespace exists, add its ID here, e.g.
+  // ,"kv_namespaces": [{ "binding": "CLAIMS", "id": "<namespace id>" }]
+}
