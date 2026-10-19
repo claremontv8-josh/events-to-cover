@@ -15,12 +15,12 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 
 ## One-time setup on Cloudflare (about 10 minutes)
 
-1. **Create the Pages project.** In the Cloudflare dashboard go to **Workers & Pages → Create → Pages → Connect to Git**, choose `events-to-cover`, then set:
+1. **Create the Pages project.** In the Cloudflare dashboard go to **Workers & Pages → Create application**, switch to the **Pages** tab (not the default Workers option), then **Connect to Git** and choose `events-to-cover`. If you see *"Bindings cannot be added to a Worker that only has static assets"* later, you created a Worker by mistake: delete it and start again from the Pages tab. Set:
    - Framework preset: **None**
    - Build command: *(leave empty)*
    - Build output directory: **`public`**
 
-   Click **Save and Deploy**. You'll get an address like `events-to-cover.pages.dev`.
+   Click **Save and Deploy**. You'll get an address ending in **`.pages.dev`** (a `.workers.dev` address means it was created as a Worker).
 2. **Create the picks database.** Go to **Storage & Databases → KV → Create a namespace** and name it `ccmc-claims`.
 3. **Connect it to the site.** Open the Pages project → **Settings → Bindings → Add → KV namespace**. Variable name: **`CLAIMS`** (exactly, in capitals). Namespace: `ccmc-claims`. Save.
 4. **Redeploy** so the binding takes effect: **Deployments → … on the latest deployment → Retry deployment**.
