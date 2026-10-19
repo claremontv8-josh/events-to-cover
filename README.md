@@ -43,7 +43,7 @@ Cloudflare Access (below) works the same for Workers: use the `.workers.dev` add
 
 1. In the dashboard open **Zero Trust** (first visit asks you to pick a team name and the Free plan).
 2. **Access → Applications → Add an application → Self-hosted.**
-3. Application domain: your `events-to-cover.pages.dev` address. Also add `*.events-to-cover.pages.dev` so preview links are protected.
+3. Application domain: the board's address, currently `events-to-cover.claremontv8.workers.dev` (or `events-to-cover.pages.dev` if you set it up as Pages).
 4. Add a policy: **Allow**, Include → **Emails** (list staff addresses) or **Emails ending in** your CCMC domain.
 5. Save. Staff now get a one-time code by email the first time they open the board.
 
