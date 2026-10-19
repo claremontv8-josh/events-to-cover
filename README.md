@@ -1,5 +1,7 @@
 # CCMC Story Lead Board
 
+**Live at https://events.claremontv.org** (Cloudflare Pages project `ccmc-events`; DNS is a CNAME at Bluehost pointing to `ccmc-events.pages.dev`).
+
 An internal board for Claremont Community Media Center: free community events within about 25 miles of Claremont, NH, with suggested shoots and a shared **Pick to cover** button so the team can see who's covering what.
 
 Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday and Thursday morning, which commits a new `public/events.json` to this repo; Cloudflare redeploys automatically.
@@ -43,7 +45,7 @@ Cloudflare Access (below) works the same for Workers: use the `.workers.dev` add
 
 1. In the dashboard open **Zero Trust** (first visit asks you to pick a team name and the Free plan).
 2. **Access → Applications → Add an application → Self-hosted.**
-3. Application domain: the board's address, currently `events-to-cover.claremontv8.workers.dev` (or `events-to-cover.pages.dev` if you set it up as Pages).
+3. Application domain: the board's address. Note: `events.claremontv.org` uses Bluehost DNS, and Access generally needs the domain's DNS on Cloudflare, so protecting that address would mean moving claremontv.org's DNS to Cloudflare first.
 4. Add a policy: **Allow**, Include → **Emails** (list staff addresses) or **Emails ending in** your CCMC domain.
 5. Save. Staff now get a one-time code by email the first time they open the board.
 
