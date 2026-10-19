@@ -72,6 +72,13 @@ button:hover{background:var(--claim-bg)}
 button:disabled{opacity:.5;cursor:wait}
 .covering{font-size:13px;font-weight:600;color:var(--claim);display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .covering button{border-color:var(--line);color:var(--muted);padding:3px 8px;font-size:12px}
+.calbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--claim);background:var(--claim-bg);color:var(--ink);font-size:14px}
+.calbar b{color:var(--claim)}
+.calbar .x{margin-left:auto;border-color:var(--line);color:var(--muted)}
+a.cal{font-size:13px;font-weight:600;color:var(--claim);text-decoration:none;border:1px solid var(--claim);border-radius:4px;padding:5px 12px;background:var(--surface);white-space:nowrap}
+a.cal:hover{background:var(--claim-bg)}
+.mine li{margin-bottom:4px}
+.mine li a{font-size:13px;font-weight:600;color:var(--claim);margin-left:6px}
 .notice{padding:10px 12px;border:1px solid var(--line);background:var(--warn-bg);color:var(--warn);font-size:14px}
 .empty{padding:24px 0;color:var(--muted)}
 footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;max-width:70ch}
@@ -91,6 +98,7 @@ a:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{ou
 </header>
 
 <div class="notice" id="notice" hidden></div>
+<div class="calbar" id="calbar" role="status" hidden></div>
 
 <section>
   <h2>Suggested shoots</h2>
@@ -118,6 +126,7 @@ a:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{ou
 </footer>
 </div>
 
+<script src="/calendar.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -144,10 +153,34 @@ $("me").addEventListener("input", () => { store.set("ccmc-name", $("me").value.t
 
 function showNotice(msg){ $("notice").textContent = msg; $("notice").hidden = !msg; }
 
+// After a pick, offer to put the shoot on the picker's calendar.
+function showCalbar(e){
+  if (!e){ $("calbar").hidden = true; return; }
+  const who = $("me").value.trim();
+  $("calbar").innerHTML = `<span><b>Picked:</b> ${esc(e.title)}, ${esc(fmtDay(e.d))}. Put it on your schedule:</span>
+    <a class="cal" href="${esc(CCMCcal.googleUrl(e, who))}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <button data-ics="${esc(e.id)}">Outlook / Apple (.ics)</button>
+    <button class="x" data-act="dismiss" aria-label="Dismiss">Done</button>`;
+  $("calbar").hidden = false;
+}
+
+function downloadIcs(id){
+  const e = E.find(x => x.id === id); if (!e) return;
+  const who = claims[id] ? claims[id].name : $("me").value.trim();
+  const url = URL.createObjectURL(new Blob([CCMCcal.ics(e, who)], {type:"text/calendar"}));
+  const a = Object.assign(document.createElement("a"), {href:url, download:`ccmc-${id}.ics`});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 function claimControl(e){
   const c = claims[e.id];
   if (!claimsOk) return "";
-  if (c) return `<div class="covering">Covering: ${esc(c.name)} <button data-act="unclaim" data-id="${esc(e.id)}" aria-label="Unpick ${esc(e.title)}">Unpick</button></div>`;
+  if (c) {
+    const mineNow = c.name.toLowerCase() === $("me").value.trim().toLowerCase();
+    const cal = mineNow ? `<a class="cal" href="${esc(CCMCcal.googleUrl(e, c.name))}" target="_blank" rel="noopener">Add to Google Calendar</a>` : "";
+    return `<div class="covering">Covering: ${esc(c.name)} ${cal}<button data-act="unclaim" data-id="${esc(e.id)}" aria-label="Unpick ${esc(e.title)}">Unpick</button></div>`;
+  }
   return `<button data-act="claim" data-id="${esc(e.id)}">Pick to cover</button>`;
 }
 
@@ -155,7 +188,7 @@ function renderMine(){
   const me = $("me").value.trim().toLowerCase();
   const mine = me ? E.filter(e => e.d >= today && claims[e.id] && claims[e.id].name.toLowerCase() === me) : [];
   $("mine").hidden = !mine.length;
-  $("mine").innerHTML = mine.length ? `<b>You're covering ${mine.length}:</b><ul>${mine.map(e => `<li>${esc(fmtDay(e.d))}, ${esc(e.t)}: ${esc(e.title)} (${esc(e.town)})</li>`).join("")}</ul>` : "";
+  $("mine").innerHTML = mine.length ? `<b>You're covering ${mine.length}:</b><ul>${mine.map(e => `<li>${esc(fmtDay(e.d))}, ${esc(e.t)}: ${esc(e.title)} (${esc(e.town)}) <a href="${esc(CCMCcal.googleUrl(e, claims[e.id].name))}" target="_blank" rel="noopener">Google Calendar</a> <a href="#" data-ics="${esc(e.id)}">Other calendar (.ics)</a></li>`).join("")}</ul>` : "";
 }
 
 function render(){
@@ -208,6 +241,9 @@ async function loadClaims(){
 }
 
 document.addEventListener("click", async ev => {
+  const icsEl = ev.target.closest("[data-ics]");
+  if (icsEl){ ev.preventDefault(); downloadIcs(icsEl.dataset.ics); return; }
+  if (ev.target.closest("[data-act=dismiss]")){ showCalbar(null); return; }
   const btn = ev.target.closest("button[data-act]");
   if (!btn) return;
   const name = $("me").value.trim();
@@ -219,6 +255,8 @@ document.addEventListener("click", async ev => {
     const data = await readJson(r);
     if (data.claims) claims = data.claims;
     showNotice(r.ok ? "" : (data.error || "That didn't save. Try again."));
+    if (r.ok && btn.dataset.act === "claim") showCalbar(E.find(x => x.id === btn.dataset.id));
+    if (r.ok && btn.dataset.act === "unclaim") showCalbar(null);
   } catch {
     showNotice("Couldn't reach the server, so the pick didn't save. Check your connection and try again.");
   }

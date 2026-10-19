@@ -12,6 +12,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | --- | --- |
 | `public/index.html` | The board itself (filters, suggested shoots, Pick buttons) |
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
+| `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
 | `functions/api/claims.js` | The small server function that saves and reads picks |
 | `src/worker.js`, `wrangler.jsonc` | Used instead when the site is deployed as a Cloudflare Worker |
@@ -54,6 +55,7 @@ With Access on, each pick also records the staff member's email.
 ## Using it
 
 - Type your name in **Your name** (remembered on that device), then click **Pick to cover**. Everyone sees "Covering: *name*" within 30 seconds.
+- After you pick, the board offers **Add to Google Calendar** (opens Google Calendar with the shoot filled in; click Save) or an **.ics** file for Outlook and Apple Calendar. The same links stay under **You're covering**.
 - **Unpick** releases an event. **Not yet picked** filters to open events.
 - **Suggested** marks the desk's recommended shoots. **Verify** means the event came from a listing site; confirm with the organizer.
 - Picks clear themselves 90 days after they're made.
