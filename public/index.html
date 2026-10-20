@@ -64,6 +64,7 @@ input[type=search]{flex:1;min-width:140px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 .chip{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);white-space:nowrap}
 .chip.free{background:var(--free-bg);color:var(--free)}
+.chip.live{background:var(--claim-bg);color:var(--claim)}
 .chip.verify{background:var(--warn-bg);color:var(--warn)}
 .chip.sugg{background:var(--tally);color:var(--surface)}
 .src{font-size:12px;color:var(--muted)}
@@ -206,7 +207,7 @@ function render(){
 
   renderMine();
 
-  const rows = upcoming.filter(e => (!f || e.free) && (!open || !claims[e.id]) && (!tw || e.town === tw) && (!ct || e.cat === ct) &&
+  const rows = upcoming.filter(e => (!f || e.free || e.costUnknown) && (!open || !claims[e.id]) && (!tw || e.town === tw) && (!ct || e.cat === ct) &&
     (!q || (e.title + e.venue + e.angle + e.town).toLowerCase().includes(q)));
   const picked = upcoming.filter(e => claims[e.id]).length;
   $("count").textContent = `${rows.length} shown · ${picked} picked`;
@@ -224,10 +225,21 @@ function render(){
         <div class="src">Source: ${esc(e.src)}</div>
       </div>
       <div class="tags">
-        <div class="chips">${e.pick ? '<span class="chip sugg">Suggested</span>' : ""}<span class="chip ${e.free ? "free" : ""}">${e.free ? "Free" : esc(e.cost || "Paid")}</span><span class="chip">${esc(e.cat)}</span>${e.verify ? '<span class="chip verify">Verify</span>' : ""}</div>
+        <div class="chips">${e.pick ? '<span class="chip sugg">Suggested</span>' : ""}<span class="chip ${e.free ? "free" : ""}">${e.free ? "Free" : esc(e.cost || "Paid")}</span><span class="chip">${esc(e.cat)}</span>${e.verify ? '<span class="chip verify">Verify</span>' : ""}${e.live ? '<span class="chip live" title="Pulled live from the venue\'s own calendar">Live calendar</span>' : ""}</div>
         ${claimControl(e)}
       </div>
     </div>`).join("") + `</div>`).join("");
+}
+
+// Venue calendars read live by /api/feeds (e.g. The Well). If that fails, the board carries on.
+async function mergeFeeds(){
+  try {
+    const r = await fetch("/api/feeds");
+    const data = await readJson(r);
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const have = new Set(E.map(e => e.d + norm(e.title)));
+    for (const e of data.events || []) if (!have.has(e.d + norm(e.title))) E.push(e);
+  } catch {}
 }
 
 async function loadClaims(){
@@ -276,6 +288,7 @@ $("q").addEventListener("input", render);
     const r = await fetch("/events.json", {cache:"no-store"});
     const data = await r.json();
     E = data.events || [];
+    await mergeFeeds();
     $("meta").innerHTML = `Rundown ${esc(data.range || "")}<br>~25 mi of Claremont · updated ${esc(fmtDay(data.updated))}`;
     const towns = [...new Set(E.map(e => e.town))].sort((a,b) => E.find(e => e.town === a).mi - E.find(e => e.town === b).mi);
     towns.forEach(t => $("town").add(new Option(t, t)));

@@ -14,6 +14,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
 | `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
+| `functions/api/feeds.js` | Reads venues' public calendars live (currently The Well) and adds their events to the board |
 | `functions/api/claims.js` | The small server function that saves and reads picks (Cloudflare D1) |
 
 ## One-time setup on Cloudflare (about 10 minutes)
@@ -35,6 +36,27 @@ Until step 3 is done, the board still shows events but displays a notice that pi
 The first version stored picks in Workers KV. An open board checks for teammates' picks regularly, and each check is a KV "list" call; the free plan allows only 1,000 of those a day, so one tab left open all day used them up. KV lists can also lag about a minute behind changes, which made unpicks look like they hadn't worked. D1's free plan allows 5 million row reads a day and shows changes immediately. The board now also checks only once a minute, and only while the tab is on screen.
 
 The old `ccmc-claims` KV namespace is no longer used. You can remove its binding and delete it.
+
+## Venue calendars read live
+
+Some venues only publish events in an embedded Google Calendar, which Claude's twice-weekly refresh can't read. The board reads those calendars itself through `functions/api/feeds.js` and shows their next 45 days of events with a **Live calendar** tag. Titles that look like meetings, bookings or admin (board meeting, committee, private, rental, AA, and so on) are skipped. Cost is read from the event description: "free" shows as Free, a dollar amount as that price, and anything unclear as **Check cost** (these still show with **Free only** on).
+
+Currently included: **The Well Collaborative** (72 Pleasant St., Claremont).
+
+To add another venue with a public Google Calendar, open its events page, find the embedded calendar's `src=` value (the calendar ID), and add an entry to `FEEDS` in `functions/api/feeds.js`:
+
+```js
+{
+  key: "short-name",            // letters/numbers/dashes; becomes part of each event's ID
+  name: "Venue Name",
+  town: "Claremont", mi: 0,
+  venue: "Venue Name, street address",
+  page: "https://venue.org/events",
+  ics: "https://calendar.google.com/calendar/ical/<calendar id with @ written as %40>/public/basic.ics",
+},
+```
+
+Any other public `.ics` calendar link works the same way. Feeds are fetched at most every 30 minutes.
 
 ## Keep it internal: Cloudflare Access (free up to 50 users)
 
