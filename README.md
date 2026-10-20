@@ -14,7 +14,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
 | `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
-| `functions/api/feeds.js` | Reads venue calendars live (The Well, GreaterUpperValley free events) and adds them to the board |
+| `functions/api/feeds.js` | Reads venue calendars live (currently The Well) and adds them to the board |
 | `functions/api/added.js` | Saves events the team adds with **+ Add an event** (same D1 database) |
 | `functions/api/claims.js` | The small server function that saves and reads picks (Cloudflare D1) |
 
