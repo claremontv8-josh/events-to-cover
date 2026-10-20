@@ -126,7 +126,7 @@ a:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{ou
 </footer>
 </div>
 
-<script src="/calendar.js"></script>
+<script src="/calendar.js?v=2"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -153,19 +153,24 @@ $("me").addEventListener("input", () => { store.set("ccmc-name", $("me").value.t
 
 function showNotice(msg){ $("notice").textContent = msg; $("notice").hidden = !msg; }
 
+// Calendar helpers live in calendar.js. If that file didn't load, the board
+// still works; it just leaves the calendar buttons out.
+const calOk = () => typeof window.CCMCcal === "object";
+const gcal = (e, who) => calOk() ? CCMCcal.googleUrl(e, who) : "";
+
 // After a pick, offer to put the shoot on the picker's calendar.
 function showCalbar(e){
-  if (!e){ $("calbar").hidden = true; return; }
+  if (!e || !calOk()){ $("calbar").hidden = true; return; }
   const who = $("me").value.trim();
   $("calbar").innerHTML = `<span><b>Picked:</b> ${esc(e.title)}, ${esc(fmtDay(e.d))}. Put it on your schedule:</span>
-    <a class="cal" href="${esc(CCMCcal.googleUrl(e, who))}" target="_blank" rel="noopener">Add to Google Calendar</a>
+    <a class="cal" href="${esc(gcal(e, who))}" target="_blank" rel="noopener">Add to Google Calendar</a>
     <button data-ics="${esc(e.id)}">Outlook / Apple (.ics)</button>
     <button class="x" data-act="dismiss" aria-label="Dismiss">Done</button>`;
   $("calbar").hidden = false;
 }
 
 function downloadIcs(id){
-  const e = E.find(x => x.id === id); if (!e) return;
+  const e = E.find(x => x.id === id); if (!e || !calOk()) return;
   const who = claims[id] ? claims[id].name : $("me").value.trim();
   const url = URL.createObjectURL(new Blob([CCMCcal.ics(e, who)], {type:"text/calendar"}));
   const a = Object.assign(document.createElement("a"), {href:url, download:`ccmc-${id}.ics`});
@@ -178,7 +183,7 @@ function claimControl(e){
   if (!claimsOk) return "";
   if (c) {
     const mineNow = c.name.toLowerCase() === $("me").value.trim().toLowerCase();
-    const cal = mineNow ? `<a class="cal" href="${esc(CCMCcal.googleUrl(e, c.name))}" target="_blank" rel="noopener">Add to Google Calendar</a>` : "";
+    const cal = mineNow && calOk() ? `<a class="cal" href="${esc(gcal(e, c.name))}" target="_blank" rel="noopener">Add to Google Calendar</a>` : "";
     return `<div class="covering">Covering: ${esc(c.name)} ${cal}<button data-act="unclaim" data-id="${esc(e.id)}" aria-label="Unpick ${esc(e.title)}">Unpick</button></div>`;
   }
   return `<button data-act="claim" data-id="${esc(e.id)}">Pick to cover</button>`;
@@ -188,7 +193,7 @@ function renderMine(){
   const me = $("me").value.trim().toLowerCase();
   const mine = me ? E.filter(e => e.d >= today && claims[e.id] && claims[e.id].name.toLowerCase() === me) : [];
   $("mine").hidden = !mine.length;
-  $("mine").innerHTML = mine.length ? `<b>You're covering ${mine.length}:</b><ul>${mine.map(e => `<li>${esc(fmtDay(e.d))}, ${esc(e.t)}: ${esc(e.title)} (${esc(e.town)}) <a href="${esc(CCMCcal.googleUrl(e, claims[e.id].name))}" target="_blank" rel="noopener">Google Calendar</a> <a href="#" data-ics="${esc(e.id)}">Other calendar (.ics)</a></li>`).join("")}</ul>` : "";
+  $("mine").innerHTML = mine.length ? `<b>You're covering ${mine.length}:</b><ul>${mine.map(e => `<li>${esc(fmtDay(e.d))}, ${esc(e.t)}: ${esc(e.title)} (${esc(e.town)})${calOk() ? ` <a href="${esc(gcal(e, claims[e.id].name))}" target="_blank" rel="noopener">Google Calendar</a> <a href="#" data-ics="${esc(e.id)}">Other calendar (.ics)</a>` : ""}</li>`).join("")}</ul>` : "";
 }
 
 function render(){
@@ -280,7 +285,10 @@ $("q").addEventListener("input", render);
   }
   render();
   loadClaims();
-  setInterval(loadClaims, 30000);
+  // Check for teammates' picks once a minute, only while this tab is on screen,
+  // and right away when someone comes back to the tab.
+  setInterval(() => { if (document.visibilityState === "visible") loadClaims(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadClaims(); });
 })();
 </script>
 </body>

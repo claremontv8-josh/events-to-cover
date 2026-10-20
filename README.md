@@ -14,8 +14,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
 | `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
-| `functions/api/claims.js` | The small server function that saves and reads picks |
-| `src/worker.js`, `wrangler.jsonc` | Used instead when the site is deployed as a Cloudflare Worker |
+| `functions/api/claims.js` | The small server function that saves and reads picks (Cloudflare D1) |
 
 ## One-time setup on Cloudflare (about 10 minutes)
 
@@ -25,22 +24,17 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
    - Build output directory: **`public`**
 
    Click **Save and Deploy**. You'll get an address ending in **`.pages.dev`** (a `.workers.dev` address means it was created as a Worker).
-2. **Create the picks database.** Go to **Storage & Databases → KV → Create a namespace** and name it `ccmc-claims`.
-3. **Connect it to the site.** Open the Pages project → **Settings → Bindings → Add → KV namespace**. Variable name: **`CLAIMS`** (exactly, in capitals). Namespace: `ccmc-claims`. Save.
-4. **Redeploy** so the binding takes effect: **Deployments → … on the latest deployment → Retry deployment**.
+2. **Create the picks database.** Go to **Storage & Databases → D1 SQL Database → Create**, name it `ccmc-picks`, and create it. You don't need to make any tables; the site creates its table on first use.
+3. **Connect it to the site.** Open the Pages project → **Settings → Bindings → Add → D1 database**. Variable name: **`DB`** (exactly, in capitals). Database: `ccmc-picks`. Save.
+4. **Redeploy** so the binding takes effect: **Deployments → … on the latest deployment → Retry deployment**. Check that the deployment you retry is the newest commit; Retry rebuilds that exact commit.
 
 Until step 3 is done, the board still shows events but displays a notice that picks aren't available.
 
-## If the site was created as a Worker (address ends in `.workers.dev`)
+### Why D1 and not KV
 
-The repo also works as a Cloudflare Worker: `wrangler.jsonc` and `src/worker.js` handle that, and the board deploys from `main` the same way. The one difference is how picks storage is connected. A Worker reads its bindings from `wrangler.jsonc`, so the dashboard's Bindings page won't take them. Instead:
+The first version stored picks in Workers KV. An open board checks for teammates' picks regularly, and each check is a KV "list" call; the free plan allows only 1,000 of those a day, so one tab left open all day used them up. KV lists can also lag about a minute behind changes, which made unpicks look like they hadn't worked. D1's free plan allows 5 million row reads a day and shows changes immediately. The board now also checks only once a minute, and only while the tab is on screen.
 
-1. **Storage & Databases → KV → Create a namespace** named `ccmc-claims`.
-2. Copy the namespace's **ID** from the KV list.
-3. In `wrangler.jsonc`, replace the commented `kv_namespaces` lines with
-   `"kv_namespaces": [{ "binding": "CLAIMS", "id": "<that ID>" }]` (add a comma after the `assets` line), and commit. The Worker redeploys on its own.
-
-Cloudflare Access (below) works the same for Workers: use the `.workers.dev` address as the application domain.
+The old `ccmc-claims` KV namespace is no longer used. You can remove its binding and delete it.
 
 ## Keep it internal: Cloudflare Access (free up to 50 users)
 
@@ -54,7 +48,7 @@ With Access on, each pick also records the staff member's email.
 
 ## Using it
 
-- Type your name in **Your name** (remembered on that device), then click **Pick to cover**. Everyone sees "Covering: *name*" within 30 seconds.
+- Type your name in **Your name** (remembered on that device), then click **Pick to cover**. Everyone sees "Covering: *name*" within a minute, or right away when they reload or come back to the tab.
 - After you pick, the board offers **Add to Google Calendar** (opens Google Calendar with the shoot filled in; click Save) or an **.ics** file for Outlook and Apple Calendar. The same links stay under **You're covering**.
 - **Unpick** releases an event. **Not yet picked** filters to open events.
 - **Suggested** marks the desk's recommended shoots. **Verify** means the event came from a listing site; confirm with the organizer.
@@ -88,7 +82,7 @@ Keep the `id` the same when you edit an event, or its pick will disappear. `pick
 ## Trying it on your own computer
 
 ```bash
-npx wrangler pages dev public --kv CLAIMS
+npx wrangler pages dev public --d1 DB
 ```
 
 Then open http://localhost:8788.
