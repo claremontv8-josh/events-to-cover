@@ -43,7 +43,9 @@ Some venues only publish events in an embedded Google Calendar, which Claude's t
 
 Currently included:
 - **The Well Collaborative** (72 Pleasant St., Claremont), from its public Google Calendar.
-- **GreaterUpperValley.com**, read from its calendar page (no feed exists). Only events marked **FREE** are kept ("free with admission" is not), within about 30 miles of Claremont. Venues listed by name only are matched to a town from a list in `feeds.js` (`VENUES`); free events at venues it doesn't recognize still show, labeled *Upper Valley*. If GreaterUpperValley redesigns its page and these events disappear, open `/api/feeds/check?debug=guv` on the site to see the page text the reader is working from.
+- **GreaterUpperValley.com** is *not* read live: it refuses automated requests (HTTP 403). Its free events are gathered by the Monday/Thursday refresh instead, using its weekly "Editors Picks" posts and the same events on the Upper Valley Business Alliance calendar.
+
+`feeds.js` can also read a plain event listing page (`LISTINGS`, free events only) for a site that has no feed but allows automated reading.
 
 To add another venue with a public Google Calendar, open its events page, find the embedded calendar's `src=` value (the calendar ID), and add an entry to `FEEDS` in `functions/api/feeds.js`:
 

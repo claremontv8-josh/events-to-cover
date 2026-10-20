@@ -24,14 +24,11 @@ const FEEDS = [
 
 // Event listing pages read as text (no feed available). Only FREE events are kept,
 // and only in towns within MAX_MILES of Claremont.
-const LISTINGS = [
-  {
-    key: "guv",
-    name: "GreaterUpperValley.com",
-    page: "https://www.greateruppervalley.com/calendar",
-    pages: 4, // also reads ?page=2..4 when they exist
-  },
-];
+// Example entry:
+//   { key: "site", name: "Site Name", page: "https://site.org/calendar", pages: 3 }
+// Note: GreaterUpperValley.com was tried here and refuses automated requests
+// (HTTP 403), so its free events are gathered by the scheduled refresh instead.
+const LISTINGS = [];
 
 const MAX_MILES = 30;
 // Approximate road miles from Claremont, NH.
