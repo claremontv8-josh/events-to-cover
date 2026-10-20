@@ -15,6 +15,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
 | `functions/api/feeds.js` | Reads venue calendars live (The Well, GreaterUpperValley free events) and adds them to the board |
+| `functions/api/added.js` | Saves events the team adds with **+ Add an event** (same D1 database) |
 | `functions/api/claims.js` | The small server function that saves and reads picks (Cloudflare D1) |
 
 ## One-time setup on Cloudflare (about 10 minutes)
@@ -76,6 +77,7 @@ With Access on, each pick also records the staff member's email.
 
 - Type your name in **Your name** (remembered on that device), then click **Pick to cover**. Everyone sees "Covering: *name*" within a minute, or right away when they reload or come back to the tab.
 - After you pick, the board offers **Add to Google Calendar** (opens Google Calendar with the shoot filled in; click Save) or an **.ics** file for Outlook and Apple Calendar. The same links stay under **You're covering**.
+- **+ Add an event** (next to Rundown) puts an event the roundup missed on the board for everyone right away. Name, date and town are required; time, venue, cost, link and a story angle are optional. Added events show **Added by *name***, can be picked and put on calendars like any other, and have a **Remove** button (with a confirm step). They stay until the day after the event. Nothing extra to set up: they use the same D1 database as picks.
 - **Unpick** releases an event. **Not yet picked** filters to open events.
 - **Suggested** marks the desk's recommended shoots. **Verify** means the event came from a listing site; confirm with the organizer.
 - Picks clear themselves 90 days after they're made.

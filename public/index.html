@@ -84,7 +84,26 @@ a.cal:hover{background:var(--claim-bg)}
 .empty{padding:24px 0;color:var(--muted)}
 footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;max-width:70ch}
 a:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--tally);outline-offset:2px}
-@media (max-width:560px){.row{grid-template-columns:1fr}.tags{align-items:flex-start}.chips,.covering{justify-content:flex-start}.meta{text-align:left}}
+.rhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.rhead h2{margin:0}
+button.primary{background:var(--claim);border-color:var(--claim);color:var(--surface)}
+button.primary:hover{background:var(--claim);opacity:.9}
+.addform{background:var(--surface);border:1px solid var(--claim);padding:16px;margin-bottom:14px;display:flex;flex-direction:column;gap:12px}
+.addform h3{font-family:var(--display);font-size:22px;margin:0;text-transform:uppercase;letter-spacing:.02em}
+.addform .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.addform label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.addform label.wide{grid-column:1/-1}
+.addform input,.addform select,.addform textarea{font:inherit;font-size:14px;padding:7px 8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:4px;width:100%;max-width:100%}
+.addform textarea{min-height:60px;resize:vertical}
+.addform .req{color:var(--tally)}
+.addform .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.addform .hint{font-size:13px;color:var(--muted)}
+.addform .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.addok{padding:10px 12px;border:1px solid var(--free);background:var(--free-bg);color:var(--free);font-size:14px;margin-bottom:14px}
+.chip.added{background:var(--warn-bg);color:var(--warn)}
+.rm{font-size:12px;border-color:var(--line);color:var(--muted);padding:3px 8px}
+.rmask{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+@media (max-width:560px){.rmask{justify-content:flex-start}.row{grid-template-columns:1fr}.tags{align-items:flex-start}.chips,.covering{justify-content:flex-start}.meta{text-align:left}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -109,7 +128,32 @@ a:focus-visible,select:focus-visible,input:focus-visible,button:focus-visible{ou
 <section class="mine" id="mine" hidden></section>
 
 <section>
-  <h2>Rundown</h2>
+  <div class="rhead"><h2>Rundown</h2><button type="button" class="primary" id="addBtn" aria-expanded="false" aria-controls="addForm">+ Add an event</button></div>
+  <div class="addok" id="addOk" role="status" hidden></div>
+  <form class="addform" id="addForm" hidden novalidate>
+    <h3>Add an event</h3>
+    <p class="hint" style="margin:0">For anything the weekly roundup missed. It goes on the board for the whole team right away. Fields marked <span class="req">*</span> are required.</p>
+    <div class="grid">
+      <label class="wide" for="fTitle"><span>Event name <span class="req">*</span></span><input id="fTitle" maxlength="120" required placeholder="e.g. Stevens High Fall Concert"></label>
+      <label for="fDate"><span>Date <span class="req">*</span></span><input id="fDate" type="date" required></label>
+      <label for="fStart"><span>Starts</span><input id="fStart" type="time"></label>
+      <label for="fEnd"><span>Ends</span><input id="fEnd" type="time"></label>
+      <label for="fTown"><span>Town <span class="req">*</span></span><input id="fTown" maxlength="40" required list="townList" placeholder="e.g. Claremont"></label>
+      <label for="fVenue"><span>Venue / address</span><input id="fVenue" maxlength="120" placeholder="e.g. Stevens High School auditorium"></label>
+      <label for="fCat"><span>Type</span><select id="fCat"><option>Community</option><option>Arts</option><option>Market</option><option>Kids &amp; family</option><option>Health / seniors</option><option>Business / jobs</option><option>Sports / rec</option></select></label>
+      <label for="fCost"><span>Cost</span><select id="fCost"><option value="free">Free</option><option value="paid">Not free</option></select></label>
+      <label for="fPrice" id="fPriceWrap" hidden><span>Price</span><input id="fPrice" maxlength="40" placeholder="e.g. $10, by donation"></label>
+      <label class="wide" for="fUrl"><span>Link (event page, flyer, Facebook post)</span><input id="fUrl" type="url" maxlength="500" placeholder="https://"></label>
+      <label class="wide" for="fAngle"><span>Story angle / notes for the crew</span><textarea id="fAngle" maxlength="300" placeholder="What makes it worth covering, who to talk to, parking, etc."></textarea></label>
+      <label class="hp" aria-hidden="true"><span>Website</span><input id="fWebsite" tabindex="-1" autocomplete="off"></label>
+    </div>
+    <datalist id="townList"></datalist>
+    <div class="actions">
+      <button type="submit" class="primary" id="addSave">Add to board</button>
+      <button type="button" id="addCancel">Cancel</button>
+      <span class="hint" id="addWho"></span>
+    </div>
+  </form>
   <div class="filters">
     <label for="me">Your name <input type="text" id="me" placeholder="e.g. Josh" maxlength="40" autocomplete="name"></label>
     <label class="toggle"><input type="checkbox" id="freeOnly" checked> Free only</label>
@@ -134,7 +178,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const fmtDay = s => new Date(s + "T12:00:00").toLocaleDateString("en-US", {weekday:"long", month:"short", day:"numeric"});
 const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in viewer's zone
 
-let E = [], claims = {}, claimsOk = true;
+let E = [], base = [], added = [], claims = {}, claimsOk = true, removing = null;
 
 const store = {
   get(k){ try { return localStorage.getItem(k) || ""; } catch { return ""; } },
@@ -225,8 +269,11 @@ function render(){
         <div class="src">Source: ${esc(e.src)}</div>
       </div>
       <div class="tags">
-        <div class="chips">${e.pick ? '<span class="chip sugg">Suggested</span>' : ""}<span class="chip ${e.free ? "free" : ""}">${e.free ? "Free" : esc(e.cost || "Paid")}</span><span class="chip">${esc(e.cat)}</span>${e.verify ? '<span class="chip verify">Verify</span>' : ""}${e.live ? '<span class="chip live" title="Pulled live from the venue\'s own calendar">Live calendar</span>' : ""}</div>
+        <div class="chips">${e.pick ? '<span class="chip sugg">Suggested</span>' : ""}<span class="chip ${e.free ? "free" : ""}">${e.free ? "Free" : esc(e.cost || "Paid")}</span><span class="chip">${esc(e.cat)}</span>${e.verify ? '<span class="chip verify">Verify</span>' : ""}${e.live ? '<span class="chip live" title="Pulled live from the venue\'s own calendar">Live calendar</span>' : ""}${e.added ? `<span class="chip added">Added by ${esc(e.addedBy)}</span>` : ""}</div>
         ${claimControl(e)}
+        ${e.added ? (removing === e.id
+          ? `<div class="rmask">Remove from the board? <button data-act="remove" data-id="${esc(e.id)}">Yes, remove</button><button data-act="remove-no">Keep</button></div>`
+          : `<button class="rm" data-act="remove-ask" data-id="${esc(e.id)}" aria-label="Remove ${esc(e.title)} from the board">Remove</button>`) : ""}
       </div>
     </div>`).join("") + `</div>`).join("");
 }
@@ -243,6 +290,85 @@ async function mergeFeeds(){
     for (const e of data.events || []) if (!dup(e)) E.push(e);
   } catch {}
 }
+
+// Events added by hand on the board (stored with picks in D1).
+function setAdded(list){
+  added = list || [];
+  const seen = new Set(added.map(e => e.id));
+  E = base.filter(e => !seen.has(e.id)).concat(added);
+  refreshFilters();
+}
+async function loadAdded(){
+  try {
+    const r = await fetch("/api/added", {cache:"no-store"});
+    const data = await readJson(r);
+    if (r.ok) setAdded(data.events);
+  } catch {}
+}
+
+function refreshFilters(){
+  const keep = {town: $("town").value, cat: $("cat").value};
+  const miOf = t => { const e = E.find(x => x.town === t && x.mi !== "" && x.mi != null); return e ? +e.mi : 99; };
+  const towns = [...new Set(E.map(e => e.town))].sort((a,b) => miOf(a) - miOf(b) || a.localeCompare(b));
+  $("town").length = 1; towns.forEach(t => $("town").add(new Option(t, t)));
+  $("cat").length = 1; [...new Set(E.map(e => e.cat))].sort().forEach(c => $("cat").add(new Option(c, c)));
+  $("town").value = towns.includes(keep.town) ? keep.town : "";
+  $("cat").value = [...$("cat").options].some(o => o.value === keep.cat) ? keep.cat : "";
+  $("townList").innerHTML = towns.map(t => `<option value="${esc(t)}">`).join("");
+}
+
+// "18:30","20:00" -> "6:30–8:00 PM"
+function timeLabel(a, b){
+  const fmt = v => { const [h, m] = v.split(":").map(Number); return {txt: `${(h + 11) % 12 + 1}:${String(m).padStart(2,"0")}`, ap: h >= 12 ? "PM" : "AM", n: h * 60 + m}; };
+  if (!a) return "Time TBA";
+  const s = fmt(a); if (!b) return `${s.txt} ${s.ap}`;
+  const e = fmt(b); if (e.n <= s.n) return `${s.txt} ${s.ap}`;
+  return s.ap === e.ap ? `${s.txt}–${e.txt} ${e.ap}` : `${s.txt} ${s.ap}–${e.txt} ${e.ap}`;
+}
+
+function openForm(open){
+  $("addForm").hidden = !open; $("addBtn").setAttribute("aria-expanded", String(open));
+  if (open){
+    $("addOk").hidden = true;
+    $("fDate").min = today;
+    const who = $("me").value.trim();
+    $("addWho").textContent = who ? `Added as ${who}` : "Enter your name in the Rundown bar first.";
+    $("fTitle").focus();
+  }
+}
+$("addBtn").addEventListener("click", () => openForm($("addForm").hidden));
+$("addCancel").addEventListener("click", () => { $("addForm").reset(); $("fPriceWrap").hidden = true; openForm(false); });
+$("fCost").addEventListener("change", () => { $("fPriceWrap").hidden = $("fCost").value !== "paid"; });
+$("me").addEventListener("input", () => { if (!$("addForm").hidden){ const w = $("me").value.trim(); $("addWho").textContent = w ? `Added as ${w}` : "Enter your name in the Rundown bar first."; } });
+
+$("addForm").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const who = $("me").value.trim();
+  const need = [["fTitle","Give the event a name."],["fDate","Pick the date."],["fTown","Enter the town."]];
+  for (const [id, msg] of need) if (!$(id).value.trim()){ showNotice(msg); $(id).focus(); return; }
+  if (!who){ showNotice("Enter your name in the Rundown bar so the team knows who added it."); $("me").focus(); return; }
+  const url = $("fUrl").value.trim();
+  if (url && !/^https?:\/\/\S+$/i.test(url)){ showNotice("The link should start with http:// or https://"); $("fUrl").focus(); return; }
+  $("addSave").disabled = true;
+  try {
+    const r = await fetch("/api/added", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({
+      action: "add", title: $("fTitle").value, d: $("fDate").value, t: timeLabel($("fStart").value, $("fEnd").value),
+      town: $("fTown").value, venue: $("fVenue").value, cat: $("fCat").value,
+      free: $("fCost").value === "free", cost: $("fPrice").value, url, angle: $("fAngle").value,
+      addedBy: who, website: $("fWebsite").value })});
+    const data = await readJson(r);
+    if (!r.ok){ showNotice(data.error || "That didn't save. Try again."); return; }
+    showNotice("");
+    setAdded(data.events);
+    $("addForm").reset(); $("fPriceWrap").hidden = true; openForm(false);
+    const e = data.event;
+    $("addOk").textContent = e ? `Added "${e.title}" (${fmtDay(e.d)}). It's on the board for everyone, and you can pick it below.` : "Added to the board.";
+    $("addOk").hidden = false;
+    render();
+  } catch {
+    showNotice("Couldn't reach the server, so the event wasn't added. Check your connection and try again.");
+  } finally { $("addSave").disabled = false; }
+});
 
 async function loadClaims(){
   try {
@@ -265,6 +391,18 @@ document.addEventListener("click", async ev => {
   if (ev.target.closest("[data-act=dismiss]")){ showCalbar(null); return; }
   const btn = ev.target.closest("button[data-act]");
   if (!btn) return;
+  if (btn.dataset.act === "remove-ask"){ removing = btn.dataset.id; render(); return; }
+  if (btn.dataset.act === "remove-no"){ removing = null; render(); return; }
+  if (btn.dataset.act === "remove"){
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/added", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({action:"remove", id: btn.dataset.id})});
+      const data = await readJson(r);
+      if (r.ok){ delete claims[btn.dataset.id]; setAdded(data.events); showNotice(""); }
+      else showNotice(data.error || "That didn't remove. Try again.");
+    } catch { showNotice("Couldn't reach the server. Try again."); }
+    removing = null; render(); return;
+  }
   const name = $("me").value.trim();
   if (btn.dataset.act === "claim" && !name){ $("me").focus(); showNotice("Enter your name in the Rundown bar first, then pick the event."); return; }
   btn.disabled = true;
@@ -291,10 +429,10 @@ $("q").addEventListener("input", render);
     const data = await r.json();
     E = data.events || [];
     await mergeFeeds();
+    base = E.slice();
     $("meta").innerHTML = `Rundown ${esc(data.range || "")}<br>~25 mi of Claremont · updated ${esc(fmtDay(data.updated))}`;
-    const towns = [...new Set(E.map(e => e.town))].sort((a,b) => E.find(e => e.town === a).mi - E.find(e => e.town === b).mi);
-    towns.forEach(t => $("town").add(new Option(t, t)));
-    [...new Set(E.map(e => e.cat))].sort().forEach(c => $("cat").add(new Option(c, c)));
+    await loadAdded();
+    refreshFilters();
   } catch {
     $("list").innerHTML = '<p class="empty">The event list didn\'t load. Refresh the page; if it keeps happening, check that events.json is in the site\'s public folder.</p>';
   }
@@ -302,8 +440,9 @@ $("q").addEventListener("input", render);
   loadClaims();
   // Check for teammates' picks once a minute, only while this tab is on screen,
   // and right away when someone comes back to the tab.
-  setInterval(() => { if (document.visibilityState === "visible") loadClaims(); }, 60000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") loadClaims(); });
+  const refresh = async () => { if (document.visibilityState === "visible"){ await loadAdded(); loadClaims(); } };
+  setInterval(refresh, 60000);
+  document.addEventListener("visibilitychange", refresh);
 })();
 </script>
 </body>
