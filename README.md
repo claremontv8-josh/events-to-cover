@@ -14,7 +14,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
 | `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
-| `functions/api/feeds.js` | Reads venues' public calendars live (currently The Well) and adds their events to the board |
+| `functions/api/feeds.js` | Reads venue calendars live (The Well, GreaterUpperValley free events) and adds them to the board |
 | `functions/api/claims.js` | The small server function that saves and reads picks (Cloudflare D1) |
 
 ## One-time setup on Cloudflare (about 10 minutes)
@@ -41,7 +41,9 @@ The old `ccmc-claims` KV namespace is no longer used. You can remove its binding
 
 Some venues only publish events in an embedded Google Calendar, which Claude's twice-weekly refresh can't read. The board reads those calendars itself through `functions/api/feeds.js` and shows their next 45 days of events with a **Live calendar** tag. Titles that look like meetings, bookings, worship services, classes or rehearsals are skipped, and so is anything that repeats every week or every day. Room names at the end of a title ("Concert - Sanctuary") move to the venue line, and an event the curated list already has that day isn't shown twice. Cost is read from the event description: "free" shows as Free, a dollar amount as that price, and anything unclear as **Check cost** (these still show with **Free only** on).
 
-Currently included: **The Well Collaborative** (72 Pleasant St., Claremont).
+Currently included:
+- **The Well Collaborative** (72 Pleasant St., Claremont), from its public Google Calendar.
+- **GreaterUpperValley.com**, read from its calendar page (no feed exists). Only events marked **FREE** are kept ("free with admission" is not), within about 30 miles of Claremont. Venues listed by name only are matched to a town from a list in `feeds.js` (`VENUES`); free events at venues it doesn't recognize still show, labeled *Upper Valley*. If GreaterUpperValley redesigns its page and these events disappear, open `/api/feeds/check?debug=guv` on the site to see the page text the reader is working from.
 
 To add another venue with a public Google Calendar, open its events page, find the embedded calendar's `src=` value (the calendar ID), and add an entry to `FEEDS` in `functions/api/feeds.js`:
 

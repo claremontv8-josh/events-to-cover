@@ -22,6 +22,29 @@ const FEEDS = [
   },
 ];
 
+// Event listing pages read as text (no feed available). Only FREE events are kept,
+// and only in towns within MAX_MILES of Claremont.
+const LISTINGS = [
+  {
+    key: "guv",
+    name: "GreaterUpperValley.com",
+    page: "https://www.greateruppervalley.com/calendar",
+    pages: 4, // also reads ?page=2..4 when they exist
+  },
+];
+
+const MAX_MILES = 30;
+// Approximate road miles from Claremont, NH.
+const MILES = {
+  claremont: 0, newport: 9, charlestown: 10, cornish: 10, "cornish flat": 10, unity: 8, acworth: 14, goshen: 12,
+  plainfield: 14, meriden: 16, croydon: 13, grantham: 16, sunapee: 14, "new london": 22, springfield: 10,
+  "north springfield": 12, windsor: 12, "west windsor": 15, ascutney: 9, weathersfield: 10, "perkinsville": 13,
+  reading: 22, lebanon: 20, "west lebanon": 18, enfield: 25, canaan: 30, hanover: 24, etna: 23, norwich: 25,
+  "white river junction": 22, wrj: 22, hartford: 22, quechee: 21, woodstock: 23, "bellows falls": 24,
+  rockingham: 24, chester: 20, walpole: 25, alstead: 22, lempster: 14, washington: 20, sharon: 30, pomfret: 28,
+  lyme: 34, thetford: 34, fairlee: 42, orford: 40, bradford: 45, keene: 33,
+};
+
 const DAYS_AHEAD = 45;
 const CACHE_SECONDS = 1800; // fetch each feed at most every 30 minutes
 const TZ = "America/New_York";
@@ -151,28 +174,157 @@ function toBoard(feed, ev, from, to) {
   }));
 }
 
-async function loadFeed(feed, from, to) {
+async function fetchCached(url) {
   const cache = caches.default;
-  const key = new Request(`https://feeds.cache/${feed.key}`);
+  const key = new Request(`https://feeds.cache/${encodeURIComponent(url)}`);
   let res = await cache.match(key);
   if (!res) {
-    const up = await fetch(feed.ics, { headers: { "user-agent": "CCMC Story Lead Board (events.claremontv.org)" } });
-    if (!up.ok) throw new Error(`${feed.name}: HTTP ${up.status}`);
+    const up = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (compatible; CCMC Story Lead Board; +https://events.claremontv.org)", accept: "text/html,text/calendar,*/*" } });
+    if (!up.ok) throw new Error(`HTTP ${up.status}`);
     res = new Response(await up.text(), { headers: { "cache-control": `public, max-age=${CACHE_SECONDS}` } });
     await cache.put(key, res.clone());
   }
-  return parseIcs(await res.text()).flatMap(ev => toBoard(feed, ev, from, to));
+  return res.text();
 }
 
-export async function onRequestGet() {
+async function loadFeed(feed, from, to) {
+  return parseIcs(await fetchCached(feed.ics)).flatMap(ev => toBoard(feed, ev, from, to));
+}
+
+// ---------- listing pages read as text ----------
+
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…" };
+// HTML -> trimmed text lines. Links are kept as "text ⟦href⟧" so titles keep their event URL.
+function htmlLines(html, base) {
+  return html
+    .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (m, href, inner) => {
+      let url = href;
+      try { url = new URL(href, base).toString(); } catch {}
+      return `${inner} ⟦${url}⟧`;
+    })
+    .replace(/<\/?(div|p|li|ul|ol|h[1-6]|br|tr|td|section|article|header|footer|time|dl|dt|dd|figure|figcaption|main|aside|nav|table)\b[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => e[0] === "#" ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENTITIES[e.toLowerCase()] ?? m))
+    .split("\n")
+    .map(l => l.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
+// "Oct 21, 2026 06:00 PM – 09:00 PM" (end part optional, start time optional)
+const WHEN = /^([A-Za-z]{3,4})\.? (\d{1,2}),? (\d{4})(?:,? (\d{1,2}):(\d{2}) ?([AP]M))?(?: ?[–-] ?(?:[A-Za-z]{3,4}\.? \d{1,2},? \d{4} )?(\d{1,2}):(\d{2}) ?([AP]M))?/i;
+const PRICE = /^(free|\$|by donation|donation|suggested|admission|tickets?|cost|\d+(\.\d\d)? ?(usd|\$)|pay what)|\b(free|\$\d)/i;
+const linkOf = l => (l.match(/⟦([^⟧]+)⟧/) || [])[1] || "";
+const plain = l => l.replace(/\s*⟦[^⟧]*⟧/g, "").trim();
+const mins = (h, m, ap) => ((+h % 12) + (ap.toUpperCase() === "PM" ? 12 : 0)) * 60 + +m;
+
+// Venues the calendar lists by name only.
+const VENUES = {
+  "claremont rec": "claremont", "csb community center": "claremont", "fiske": "claremont", "claremont opera house": "claremont",
+  "visitor center green": "claremont", "broad street park": "claremont", "monadnock park": "claremont", "the well": "claremont",
+  "colburn park": "lebanon", "ava gallery": "lebanon", "lebanon opera house": "lebanon", "lebanon public library": "lebanon",
+  "kilton": "west lebanon", "storrs pond": "hanover", "allen street": "hanover", "fourth place": "hanover",
+  "hopkins center": "hanover", "hood museum": "hanover", "howe library": "hanover", "dartmouth": "hanover", "sawtooth": "hanover",
+  "etna library": "etna", "montshire": "norwich", "norwich bookstore": "norwich", "norman williams": "woodstock",
+  "billings farm": "woodstock", "town hall theatre": "woodstock", "simon pearce": "quechee", "upper valley aquatic": "white river junction",
+  "lyman point": "white river junction", "main street museum": "white river junction", "briggs opera house": "white river junction",
+  "hotel coolidge": "white river junction", "northern stage": "white river junction", "richards free library": "newport",
+  "newport opera house": "newport", "library arts center": "newport", "abbott library": "sunapee", "fort at no. 4": "charlestown",
+  "saint-gaudens": "cornish", "plainfield village": "plainfield", "philip read": "plainfield", "enfield shaker": "enfield",
+  "mascoma valley": "canaan", "artistree": "pomfret", "hall art": "reading",
+};
+
+function townOf(venue) {
+  const v = venue.toLowerCase();
+  const named = Object.keys(VENUES).find(k => v.includes(k));
+  if (named) return VENUES[named];
+  const m = venue.match(/([A-Za-z .']+),\s*(NH|VT|New Hampshire|Vermont)\b/);
+  const cand = m ? m[1].split(/[-–,]/).pop().trim().toLowerCase() : "";
+  if (cand && cand in MILES) return cand;
+  return Object.keys(MILES).sort((a, b) => b.length - a.length).find(t => new RegExp(`\\b${t}\\b`).test(v)) || "";
+}
+const title = s => s.replace(/\b\w/g, c => c.toUpperCase());
+
+function parseListing(lines, src, from, to) {
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const w = plain(lines[i]).match(WHEN);
+    if (!w || !(w[1].slice(0, 3).toLowerCase() in MONTHS)) continue;
+    const d = `${w[3]}-${String(MONTHS[w[1].slice(0, 3).toLowerCase()]).padStart(2, "0")}-${w[2].padStart(2, "0")}`;
+    if (d < from || d > to) continue;
+    // title: closest line above that isn't a date or a price
+    let ti = i - 1;
+    while (ti > 0 && (WHEN.test(plain(lines[ti])) || PRICE.test(plain(lines[ti])) && plain(lines[ti]).length < 40)) ti--;
+    const name = plain(lines[ti]);
+    if (!name || name.length < 3 || /^(read more|more|details|image)$/i.test(name) || SKIP.test(name)) continue;
+    // optional price line, then venue line
+    let j = i + 1, priceText = "";
+    if (lines[j] && PRICE.test(plain(lines[j])) && !WHEN.test(plain(lines[j]))) priceText = plain(lines[j++]);
+    const venue = lines[j] && !WHEN.test(plain(lines[j])) ? plain(lines[j]) : "";
+    if (!/\bfree\b/i.test(priceText) || /with .*admission|admission required/i.test(priceText)) continue;
+    const town = townOf(`${venue} ${name}`);
+    const mi = town ? MILES[town] : null;
+    if (mi != null && mi > MAX_MILES) continue; // unknown town: keep, labeled Upper Valley
+    const start = w[4] ? mins(w[4], w[5], w[6]) : null;
+    const end = w[7] ? mins(w[7], w[8], w[9]) : null;
+    const t = start == null ? "All day"
+      : timeText({ date: d, min: start }, end == null ? null : { date: d, min: end });
+    out.push({
+      id: `${src.key}-${d}-${slug(name)}`,
+      d, t, title: name,
+      town: town ? title(town) : "Upper Valley", mi: mi ?? "",
+      venue: venue || (town ? title(town) : "See listing"),
+      free: 1,
+      cat: /music|concert|band|folk|jazz|song|dance|art|gallery|theat|film|poetry|reading|author|book/i.test(name) ? "Arts"
+         : /kid|family|child|story ?walk|trick|trunk|halloween|teen/i.test(name) ? "Kids & family"
+         : /market|fair|bazaar|sale/i.test(name) ? "Market" : "Community",
+      angle: priceText && !/^free$/i.test(priceText) ? priceText : `Free event listed on ${src.name}.`,
+      src: `${src.name} (live)`,
+      url: linkOf(lines[ti]) || src.page,
+      live: 1,
+    });
+  }
+  // same event listed twice on a page (featured + regular) -> keep one
+  const seen = new Set();
+  return out.filter(e => !seen.has(e.id) && seen.add(e.id));
+}
+
+async function loadListing(src, from, to) {
+  const all = [], ids = new Set();
+  for (let n = 1; n <= (src.pages || 1); n++) {
+    const url = n === 1 ? src.page : `${src.page}${src.page.includes("?") ? "&" : "?"}page=${n}`;
+    let html;
+    try { html = await fetchCached(url); } catch (e) { if (n === 1) throw e; break; }
+    const found = parseListing(htmlLines(html, src.page), src, from, to).filter(e => !ids.has(e.id));
+    if (n > 1 && !found.length) break;
+    found.forEach(e => { ids.add(e.id); all.push(e); });
+  }
+  return all;
+}
+
+export async function onRequestGet({ request } = {}) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
   const to = addDays(today, DAYS_AHEAD);
-  const results = await Promise.allSettled(FEEDS.map(f => loadFeed(f, today, to)));
-  const events = [], errors = [];
-  results.forEach((r, i) => (r.status === "fulfilled" ? events.push(...r.value) : errors.push(`${FEEDS[i].name} couldn't be read.`)));
+  const sources = [
+    ...FEEDS.map(f => ({ name: f.name, run: () => loadFeed(f, today, to) })),
+    ...LISTINGS.map(l => ({ name: l.name, run: () => loadListing(l, today, to) })),
+  ];
+  const results = await Promise.allSettled(sources.map(s => s.run()));
+  const events = [], errors = [], counts = {};
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled") { events.push(...r.value); counts[sources[i].name] = r.value.length; }
+    else errors.push(`${sources[i].name} couldn't be read (${r.reason?.message || "error"}).`);
+  });
   events.sort((a, b) => a.d.localeCompare(b.d));
-  return json({ events, errors });
+  const body = { events, errors, counts };
+  // ?debug=<listing key> adds that page's first text lines, to help fix parsing if a site changes.
+  const dbg = request && new URL(request.url).searchParams.get("debug");
+  const src = dbg && LISTINGS.find(l => l.key === dbg);
+  if (src) { try { body.debugLines = htmlLines(await fetchCached(src.page), src.page).slice(0, 220); } catch (e) { body.debugLines = [String(e.message)]; } }
+  return json(body);
 }
 
 // Exposed for tests.
-export const _test = { parseIcs, toBoard, timeText, localParts, occurrences, costOf };
+export const _test = { parseIcs, toBoard, timeText, localParts, occurrences, costOf, htmlLines, parseListing, townOf };
