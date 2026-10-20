@@ -39,7 +39,7 @@ The old `ccmc-claims` KV namespace is no longer used. You can remove its binding
 
 ## Venue calendars read live
 
-Some venues only publish events in an embedded Google Calendar, which Claude's twice-weekly refresh can't read. The board reads those calendars itself through `functions/api/feeds.js` and shows their next 45 days of events with a **Live calendar** tag. Titles that look like meetings, bookings or admin (board meeting, committee, private, rental, AA, and so on) are skipped. Cost is read from the event description: "free" shows as Free, a dollar amount as that price, and anything unclear as **Check cost** (these still show with **Free only** on).
+Some venues only publish events in an embedded Google Calendar, which Claude's twice-weekly refresh can't read. The board reads those calendars itself through `functions/api/feeds.js` and shows their next 45 days of events with a **Live calendar** tag. Titles that look like meetings, bookings, worship services, classes or rehearsals are skipped, and so is anything that repeats every week or every day. Room names at the end of a title ("Concert - Sanctuary") move to the venue line, and an event the curated list already has that day isn't shown twice. Cost is read from the event description: "free" shows as Free, a dollar amount as that price, and anything unclear as **Check cost** (these still show with **Free only** on).
 
 Currently included: **The Well Collaborative** (72 Pleasant St., Claremont).
 

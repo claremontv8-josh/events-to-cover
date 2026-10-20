@@ -27,7 +27,9 @@ const CACHE_SECONDS = 1800; // fetch each feed at most every 30 minutes
 const TZ = "America/New_York";
 
 // Titles that are meetings, bookings or admin, not story material.
-const SKIP = /\b(meeting|mtg|board|committee|commission|council|private|closed|rental|rented|reserved|hold|staff|office hours|set ?up|clean ?up|tentative|aa|na|al-anon)\b/i;
+const SKIP = /\b(meeting|mtg|board|committee|commission|council|private|closed|rental|rented|reserved|hold|staff|office hours|set ?up|clean ?up|tentative|aa|na|al-anon|service|worship|mass|bible|prayer|rehearsals?|practice|yoga|class|lessons?|club|support group)\b/i;
+// Repeating weekly/daily items (services, classes, rehearsals) are routine, not stories.
+const ROUTINE_FREQ = /FREQ=(DAILY|WEEKLY)/i;
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -120,8 +122,12 @@ function costOf(text) {
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 
 function toBoard(feed, ev, from, to) {
-  const title = unescape(ev.SUMMARY?.value);
+  // Venues often append the room ("Concert - Sanctuary"); keep it for the venue line.
+  const full = unescape(ev.SUMMARY?.value);
+  const room = (full.match(/\s[-–]\s(Sanctuary|Parlor|Parlour|Hall|Chapel|Room \w+|Gallery|Kitchen|Library|Basement|Vestry)$/i) || [])[1];
+  const title = room ? full.slice(0, full.length - room.length).replace(/\s[-–]\s$/, "").trim() : full;
   if (!title || SKIP.test(title)) return [];
+  if (ev.RRULE && ROUTINE_FREQ.test(ev.RRULE.value)) return [];
   if ((ev.STATUS?.value || "").toUpperCase() === "CANCELLED") return [];
   if ((ev.CLASS?.value || "").toUpperCase() === "PRIVATE") return [];
   const start = localParts(ev.DTSTART);
@@ -135,7 +141,7 @@ function toBoard(feed, ev, from, to) {
     id: `${feed.key}-${d}-${slug(title)}`,
     d, t, title,
     town: feed.town, mi: feed.mi,
-    venue: loc && !/^https?:/.test(loc) ? loc : feed.venue,
+    venue: (loc && !/^https?:/.test(loc) ? loc : feed.venue) + (room ? ` (${room})` : ""),
     ...costOf(`${title} ${desc}`),
     cat: /music|concert|band|folk|jazz|song|candlelight|tribute|dance/i.test(`${title} ${desc}`) ? "Arts" : "Community",
     angle: desc ? (desc.length > 170 ? desc.slice(0, 167).replace(/\s+\S*$/, "") + "…" : desc) : `From ${feed.name}'s public calendar.`,

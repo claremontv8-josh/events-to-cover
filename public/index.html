@@ -237,8 +237,10 @@ async function mergeFeeds(){
     const r = await fetch("/api/feeds");
     const data = await readJson(r);
     const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const have = new Set(E.map(e => e.d + norm(e.title)));
-    for (const e of data.events || []) if (!have.has(e.d + norm(e.title))) E.push(e);
+    // Skip a live event when the curated list already has it that day
+    // (same name, or one name contains the other, e.g. "Hallowesta" / "Hallowesta Downtown Celebration").
+    const dup = e => E.some(x => x.d === e.d && (norm(x.title).includes(norm(e.title)) || norm(e.title).includes(norm(x.title))));
+    for (const e of data.events || []) if (!dup(e)) E.push(e);
   } catch {}
 }
 
