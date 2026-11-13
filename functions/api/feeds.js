@@ -20,6 +20,66 @@ const FEEDS = [
     page: "https://www.thewellcollaborativenh.org/home/events",
     ics: "https://calendar.google.com/calendar/ical/ca66a7f6e2e9232e07990e837cbd6454b8b177efb43e5405a96e706252f6d66b%40group.calendar.google.com/public/basic.ics",
   },
+  {
+    key: "wcc",
+    name: "West Claremont Center for Music & the Arts",
+    town: "Claremont",
+    mi: 0,
+    venue: "Claremont Creative Center, 56 Opera House Square",
+    page: "https://www.wcc-ma.org/events/",
+    ics: "https://www.wcc-ma.org/?plugin=all-in-one-event-calendar&controller=ai1ec_exporter_controller&action=export_events",
+  },
+  {
+    key: "chs",
+    name: "Claremont Historical Society",
+    town: "Claremont",
+    mi: 0,
+    venue: "Claremont Historical Society",
+    page: "https://claremonthistory.org/",
+    ics: "https://calendar.google.com/calendar/ical/946ffb92ddd03bdf3aab2de5e527a49761567eca1c4a1b5a923bf2abcd3d97b1%40group.calendar.google.com/public/basic.ics",
+  },
+  {
+    // Community calendar for the Sunapee area; mixes free community events with paid classes.
+    key: "sunapee",
+    name: "Project Sunapee",
+    town: "Sunapee",
+    mi: 14,
+    venue: "Sunapee",
+    page: "https://projectsunapee.org/community-events/",
+    ics: "https://projectsunapee.org/?post_type=tribe_events&ical=1&eventDisplay=list",
+    freeOnly: true,
+    townFromLocation: true,
+  },
+  {
+    // Paid-admission museum: only its free programs are kept.
+    key: "montshire",
+    name: "Montshire Museum of Science",
+    town: "Norwich",
+    mi: 25,
+    venue: "Montshire Museum of Science, 1 Montshire Rd., Norwich VT",
+    page: "https://montshire.org/events/",
+    ics: "https://montshire.org/?post_type=tribe_events&ical=1&eventDisplay=list",
+    freeOnly: true,
+    strictFree: true,
+  },
+];
+
+// Dartmouth's public events calendar has no feed, but its listing page can be filtered by
+// group and read as text. Group ids come from https://home.dartmouth.edu/events (filter menu).
+// allFree: every event is free (the Hood has free admission). Otherwise events show as
+// "Check cost", and `skip` drops ticketed series.
+const DARTMOUTH = [
+  {
+    key: "hood", group: 27, name: "Hood Museum of Art", allFree: true,
+    town: "Hanover", mi: 24, venue: "Hood Museum of Art, 6 E. Wheelock St., Hanover",
+  },
+  {
+    key: "hop", group: 28, name: "Hopkins Center for the Arts",
+    town: "Hanover", mi: 24, venue: "Hopkins Center for the Arts, Hanover",
+    // Films, HD broadcasts and mainstage theater are ticketed; keep community/family/free programs.
+    keep: /\b(free|community|family|hopstop|open house|sing|workshop|talk|demo|celebrat|symposium|festival|parade)\b/i,
+    skip: /\b(met opera|in hd|national theatre|nt live|department of theater|film|screening)\b/i,
+  },
 ];
 
 // Event listing pages read as text (no feed available). Only FREE events are kept,
@@ -47,7 +107,9 @@ const CACHE_SECONDS = 1800; // fetch each feed at most every 30 minutes
 const TZ = "America/New_York";
 
 // Titles that are meetings, bookings or admin, not story material.
-const SKIP = /\b(meeting|mtg|board|committee|commission|council|private|closed|rental|rented|reserved|hold|staff|office hours|set ?up|clean ?up|tentative|aa|na|al-anon|service|worship|mass|bible|prayer|rehearsals?|practice|yoga|class|lessons?|club|support group)\b/i;
+const SKIP = /\b(meeting|mtg|board|committee|commission|council|private|closed|rental|rented|reserved|hold|staff|office hours|set ?up|clean ?up|tentative|aa|na|al-anon|service|worship|mass|bible|prayer|rehearsals?|practice|yoga|class|lessons?|club|support group|brunch|trivia|tasting|happy hour|ladies night|museum (is )?open)\b/i;
+// In freeOnly feeds, an event with no stated cost is still kept when it looks like an open community event.
+const COMMUNITY = /\b(market|fair|festival|parade|tree lighting|christmas|holiday|celebrat\w*|bazaar|craft sale|pie sale|turkey trot|5k|coffee ?house|open house|thanksgiving dinner|community (dinner|meal|sing)|carol\w*|concert)\b/i;
 // Repeating weekly/daily items (services, classes, rehearsals) are routine, not stories.
 const ROUTINE_FREQ = /FREQ=(DAILY|WEEKLY)/i;
 
@@ -80,7 +142,7 @@ function parseIcs(text) {
   return events;
 }
 
-const unescape = s => String(s || "").replace(/\\n/gi, "\n").replace(/\\([,;\\])/g, "$1").trim();
+const unescape = s => decodeEntities(String(s || "").replace(/\\n/gi, "\n").replace(/\\([,;\\])/g, "$1")).trim();
 
 // Turn an iCal date value into {date:"YYYY-MM-DD", min: minutes after midnight in Claremont | null}
 function localParts(prop) {
@@ -157,12 +219,21 @@ function toBoard(feed, ev, from, to) {
   const loc = unescape(ev.LOCATION?.value);
   const link = ev.URL?.value || ((desc.match(/https?:\/\/[^\s)"'<>]+/) || [])[0] || "").replace(/[.,;:!?]+$/, "") || feed.page;
   const t = timeText(start, end);
+  const cost = costOf(`${title} ${desc}`);
+  const community = COMMUNITY.test(title) && !/\b(workshop|studio|101|learn to|making)\b/i.test(title);
+  if (feed.freeOnly && !cost.free && !(cost.costUnknown && !feed.strictFree && community)) return [];
+  let town = feed.town, mi = feed.mi;
+  if (feed.townFromLocation && loc) {
+    const found = townOf(loc);
+    if (found) { town = titleCase(found); mi = MILES[found]; }
+    if (mi > MAX_MILES) return [];
+  }
   return occurrences(ev, start, from, to).map(d => ({
     id: `${feed.key}-${d}-${slug(title)}`,
     d, t, title,
-    town: feed.town, mi: feed.mi,
+    town, mi,
     venue: (loc && !/^https?:/.test(loc) ? loc : feed.venue) + (room ? ` (${room})` : ""),
-    ...costOf(`${title} ${desc}`),
+    ...cost,
     cat: /music|concert|band|folk|jazz|song|candlelight|tribute|dance/i.test(`${title} ${desc}`) ? "Arts" : "Community",
     angle: desc ? (desc.length > 170 ? desc.slice(0, 167).replace(/\s+\S*$/, "") + "…" : desc) : `From ${feed.name}'s public calendar.`,
     src: `${feed.name} calendar (live)`,
@@ -191,6 +262,9 @@ async function loadFeed(feed, from, to) {
 // ---------- listing pages read as text ----------
 
 const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", hellip: "…" };
+function decodeEntities(s) {
+  return s.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => e[0] === "#" ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENTITIES[e.toLowerCase()] ?? m));
+}
 // HTML -> trimmed text lines. Links are kept as "text ⟦href⟧" so titles keep their event URL.
 function htmlLines(html, base) {
   return html
@@ -203,8 +277,8 @@ function htmlLines(html, base) {
     })
     .replace(/<\/?(div|p|li|ul|ol|h[1-6]|br|tr|td|section|article|header|footer|time|dl|dt|dd|figure|figcaption|main|aside|nav|table)\b[^>]*>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
-    .replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (m, e) => e[0] === "#" ? String.fromCodePoint(e[1].toLowerCase() === "x" ? parseInt(e.slice(2), 16) : +e.slice(1)) : (ENTITIES[e.toLowerCase()] ?? m))
     .split("\n")
+    .map(decodeEntities)
     .map(l => l.replace(/\s+/g, " ").trim())
     .filter(Boolean);
 }
@@ -242,7 +316,7 @@ function townOf(venue) {
   if (cand && cand in MILES) return cand;
   return Object.keys(MILES).sort((a, b) => b.length - a.length).find(t => new RegExp(`\\b${t}\\b`).test(v)) || "";
 }
-const title = s => s.replace(/\b\w/g, c => c.toUpperCase());
+const titleCase = s => s.replace(/\b\w/g, c => c.toUpperCase());
 
 function parseListing(lines, src, from, to) {
   const out = [];
@@ -271,8 +345,8 @@ function parseListing(lines, src, from, to) {
     out.push({
       id: `${src.key}-${d}-${slug(name)}`,
       d, t, title: name,
-      town: town ? title(town) : "Upper Valley", mi: mi ?? "",
-      venue: venue || (town ? title(town) : "See listing"),
+      town: town ? titleCase(town) : "Upper Valley", mi: mi ?? "",
+      venue: venue || (town ? titleCase(town) : "See listing"),
       free: 1,
       cat: /music|concert|band|folk|jazz|song|dance|art|gallery|theat|film|poetry|reading|author|book/i.test(name) ? "Arts"
          : /kid|family|child|story ?walk|trick|trunk|halloween|teen/i.test(name) ? "Kids & family"
@@ -301,12 +375,61 @@ async function loadListing(src, from, to) {
   return all;
 }
 
+// ---------- Dartmouth events calendar (filtered listing page) ----------
+
+// "4:00 pm - 4:45 pm", "2 pm - 3 pm", "11 am"
+function dartTime(text) {
+  const parts = [...String(text).matchAll(/(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?/gi)].map(m => mins(m[1], m[2] || "0", m[3] + "M"));
+  return parts;
+}
+
+function parseDartmouth(html, src, today, from, to) {
+  const out = [];
+  const re = /event-teaser__date-day">\s*(\d+)\s*<\/div>\s*<div class="event-teaser__date-month">\s*(\w+)\s*<\/div>[\s\S]*?title-link" href="([^"]+)">\s*([\s\S]*?)\s*<\/a>[\s\S]*?event-teaser__time">\s*([^<]*?)\s*<\/div>(?:\s*<div class="event-teaser__summary">\s*([\s\S]*?)\s*<\/div>)?/g;
+  for (const m of html.matchAll(re)) {
+    const mon = MONTHS[m[2].slice(0, 3).toLowerCase()];
+    if (!mon) continue;
+    let year = +today.slice(0, 4);
+    let d = `${year}-${String(mon).padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    if (d < addDays(today, -60)) d = `${++year}${d.slice(4)}`; // listing shows no year; Jan after Dec
+    if (d < from || d > to) continue;
+    const raw = decodeEntities(m[4].replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    // Hood titles come in ALL CAPS; make them readable.
+    const name = raw === raw.toUpperCase() ? raw.toLowerCase().replace(/(^|[\s"(:–-])(\w)/g, (x, a, b) => a + b.toUpperCase()) : raw;
+    const summary = decodeEntities((m[6] || "").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
+    const text = `${name} ${summary}`;
+    if (SKIP.test(name) || (src.skip && src.skip.test(text)) || (src.keep && !src.keep.test(text))) continue;
+    const [a, b] = dartTime(m[5]);
+    const t = a == null ? "All day" : timeText({ date: d, min: a }, b == null ? null : { date: d, min: b });
+    const url = new URL(m[3], "https://home.dartmouth.edu").toString();
+    out.push({
+      id: `${src.key}-${d}-${slug(name)}`,
+      d, t, title: name,
+      town: src.town, mi: src.mi, venue: src.venue,
+      ...(src.allFree ? { free: 1 } : costOf(text)),
+      cat: /kid|family|storytime|child|hopstop/i.test(text) ? "Kids & family" : "Arts",
+      angle: summary ? (summary.length > 170 ? summary.slice(0, 167).replace(/\s+\S*$/, "") + "…" : summary) : `From the ${src.name} calendar.`,
+      src: `${src.name} calendar (live)`,
+      url,
+      live: 1,
+    });
+  }
+  const seen = new Set();
+  return out.filter(e => !seen.has(e.id) && seen.add(e.id));
+}
+
+async function loadDartmouth(src, today, from, to) {
+  const html = await fetchCached(`https://home.dartmouth.edu/events?group_ids=${src.group}&audience_ids=3`);
+  return parseDartmouth(html, src, today, from, to);
+}
+
 export async function onRequestGet({ request } = {}) {
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());
   const to = addDays(today, DAYS_AHEAD);
   const sources = [
     ...FEEDS.map(f => ({ name: f.name, run: () => loadFeed(f, today, to) })),
     ...LISTINGS.map(l => ({ name: l.name, run: () => loadListing(l, today, to) })),
+    ...DARTMOUTH.map(s => ({ name: s.name, run: () => loadDartmouth(s, today, today, to) })),
   ];
   const results = await Promise.allSettled(sources.map(s => s.run()));
   const events = [], errors = [], counts = {};
@@ -324,4 +447,4 @@ export async function onRequestGet({ request } = {}) {
 }
 
 // Exposed for tests.
-export const _test = { parseIcs, toBoard, timeText, localParts, occurrences, costOf, htmlLines, parseListing, townOf };
+export const _test = { parseIcs, toBoard, timeText, localParts, occurrences, costOf, htmlLines, parseListing, townOf, parseDartmouth, FEEDS, DARTMOUTH };

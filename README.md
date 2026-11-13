@@ -4,7 +4,9 @@
 
 An internal board for Claremont Community Media Center: free community events within about 25 miles of Claremont, NH, with suggested shoots and a shared **Pick to cover** button so the team can see who's covering what.
 
-Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday and Thursday morning, which commits a new `public/events.json` to this repo; Cloudflare redeploys automatically.
+Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday and Thursday at 7:51 AM Eastern, which commits a new `public/events.json` to this repo; Cloudflare redeploys automatically.
+
+The refresh is the Claude Code routine **"CCMC story lead refresh (Claude Code)"** at claude.ai/code/routines. It needs this repo attached as a source so it can push; if the board's "updated" date stops moving, check that routine's recent runs first. (An earlier Cowork version of the routine couldn't push and silently stopped updating the board from Oct 20 to Nov 13, 2026; it is paused.)
 
 ## What's in the repo
 
@@ -14,7 +16,7 @@ Hosted on Cloudflare Pages. The event list is refreshed by Claude every Monday a
 | `public/events.json` | The event list. Edit by hand any time, or let the refresh update it |
 | `public/calendar.js` | Builds the Google Calendar links and .ics files |
 | `public/_headers` | Keeps browsers from caching an old event list |
-| `functions/api/feeds.js` | Reads venue calendars live (currently The Well) and adds them to the board |
+| `functions/api/feeds.js` | Reads venue calendars live (see "Venue calendars read live") and adds them to the board |
 | `functions/api/added.js` | Saves events the team adds with **+ Add an event** (same D1 database) |
 | `functions/api/claims.js` | The small server function that saves and reads picks (Cloudflare D1) |
 
@@ -40,10 +42,16 @@ The old `ccmc-claims` KV namespace is no longer used. You can remove its binding
 
 ## Venue calendars read live
 
-Some venues only publish events in an embedded Google Calendar, which Claude's twice-weekly refresh can't read. The board reads those calendars itself through `functions/api/feeds.js` and shows their next 45 days of events with a **Live calendar** tag. Titles that look like meetings, bookings, worship services, classes or rehearsals are skipped, and so is anything that repeats every week or every day. Room names at the end of a title ("Concert - Sanctuary") move to the venue line, and an event the curated list already has that day isn't shown twice. Cost is read from the event description: "free" shows as Free, a dollar amount as that price, and anything unclear as **Check cost** (these still show with **Free only** on).
+Some venues only publish events in an embedded Google Calendar or another calendar feed, which Claude's twice-weekly refresh can't read well. The board reads those calendars itself through `functions/api/feeds.js` and shows their next 45 days of events with a **Live calendar** tag. Titles that look like meetings, bookings, worship services, classes or rehearsals are skipped, and so is anything that repeats every week or every day. Room names at the end of a title ("Concert - Sanctuary") move to the venue line, and an event the curated list already has that day isn't shown twice. Cost is read from the event description: "free" shows as Free, a dollar amount as that price, and anything unclear as **Check cost** (these still show with **Free only** on).
 
 Currently included:
 - **The Well Collaborative** (72 Pleasant St., Claremont), from its public Google Calendar.
+- **West Claremont Center for Music & the Arts** (Claremont Creative Center), from its site's calendar export.
+- **Claremont Historical Society**, from its public Google Calendar (mostly in-season events).
+- **Project Sunapee** community calendar: **free events only**, plus no-price-listed community events such as markets, fairs, holiday celebrations and turkey trots. Each event's town comes from its address; anything over 30 miles is dropped.
+- **Montshire Museum of Science** (Norwich VT): **only programs marked free** (the museum charges admission).
+- **Hood Museum of Art** (Dartmouth): all public events, marked Free (the Hood has free admission).
+- **Hopkins Center for the Arts** (Dartmouth): only public community/family-type programs (community sings, HopStop family events, talks, workshops); films, Met Opera/Broadway HD broadcasts and mainstage theater are skipped. Dartmouth's calendar lists no prices, so these show as **Check cost**.
 - **GreaterUpperValley.com** is *not* read live: it refuses automated requests (HTTP 403). Its free events are gathered by the Monday/Thursday refresh instead, using its weekly "Editors Picks" posts and the same events on the Upper Valley Business Alliance calendar.
 
 `feeds.js` can also read a plain event listing page (`LISTINGS`, free events only) for a site that has no feed but allows automated reading.
@@ -61,7 +69,14 @@ To add another venue with a public Google Calendar, open its events page, find t
 },
 ```
 
-Any other public `.ics` calendar link works the same way. Feeds are fetched at most every 30 minutes.
+Any other public `.ics` calendar link works the same way. WordPress sites using The Events Calendar usually have one at `https://site.org/?post_type=tribe_events&ical=1&eventDisplay=list`. Optional settings:
+- `freeOnly: true` keeps only events marked free, plus no-price community events (markets, fairs, holiday celebrations, etc.).
+- `strictFree: true` (with `freeOnly`) keeps only events marked free.
+- `townFromLocation: true` takes each event's town from its address (for community calendars covering several towns).
+
+The Dartmouth venues are read from the filtered listing at `home.dartmouth.edu/events?group_ids=<id>&audience_ids=3` (`DARTMOUTH` in `feeds.js`); other Dartmouth departments can be added the same way using the group ids in that page's filter menu.
+
+Feeds are fetched at most every 30 minutes. `/api/feeds` reports each source's event count and any that couldn't be read.
 
 ## Keep it internal: Cloudflare Access (free up to 50 users)
 
