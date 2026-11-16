@@ -1,36 +1,21 @@
 {
-  "updated": "2026-11-13",
-  "range": "Nov 13 – Dec 6, 2026",
+  "updated": "2026-11-16",
+  "range": "Nov 16 – Dec 12, 2026",
   "events": [
     {
-      "id": "2026-11-14-dads-and-doughnuts",
-      "d": "2026-11-14",
-      "t": "10:30–11:30 AM",
-      "title": "Dads and Doughnuts",
-      "town": "Hanover",
-      "mi": 22,
-      "venue": "Howe Library, 13 South St.",
+      "id": "2026-11-20-gallery-of-gifts-library-arts-center",
+      "d": "2026-11-20",
+      "t": "Gallery hours, through Dec 23",
+      "title": "Gallery of Gifts Holiday Artisan Market",
+      "town": "Newport",
+      "mi": 9,
+      "venue": "Library Arts Center, 58 N. Main St.",
       "free": 1,
-      "cat": "Kids & family",
-      "angle": "Dads and kids at the library over doughnuts; light, warm family feature.",
-      "src": "GreaterUpperValley.com / UVBA calendar",
-      "url": "https://www.greateruppervalley.com/2026/11/11/590758/editors-picks-see-whats-happening-this-week-in-the-upper-valley-november-16th-22nd-",
-      "verify": 1
-    },
-    {
-      "id": "2026-11-14-johnny-folsom-4-johnny-cash-tribute",
-      "d": "2026-11-14",
-      "t": "7:30 PM",
-      "title": "The Johnny Folsom 4: Johnny Cash Tribute",
-      "town": "Claremont",
-      "mi": 0,
-      "venue": "Claremont Opera House, 58 Opera House Sq.",
-      "free": 0,
-      "cost": "From $47",
       "cat": "Arts",
-      "angle": "Near sell-out Opera House show; ask for b-roll or a promo interview.",
-      "src": "Claremont Opera House",
-      "url": "https://cohnh.org/events"
+      "angle": "Annual holiday artisan marketplace in the Library Arts Center gallery; meet local makers, shoot handmade gifts. Free to browse.",
+      "src": "Library Arts Center",
+      "url": "https://www.libraryartscenter.org/",
+      "verify": 1
     },
     {
       "id": "2026-11-21-old-fashioned-thanksgiving-dinner",
@@ -94,19 +79,20 @@
       "url": "https://trinityclaremont.org/"
     },
     {
-      "id": "2026-12-04-springfield-downtown-holiday-program",
-      "d": "2026-12-04",
-      "t": "4:00 PM",
-      "title": "Springfield Downtown Holiday Program",
-      "town": "Springfield VT",
-      "mi": 10,
-      "venue": "Downtown Main Street (Santa's House)",
+      "id": "2026-11-27-broad-street-park-holiday-lighting-santa",
+      "d": "2026-11-27",
+      "t": "6:00 PM (confirm)",
+      "title": "Broad Street Park Holiday Lighting & Santa Procession",
+      "town": "Claremont",
+      "mi": 0,
+      "venue": "Broad Street Park",
       "free": 1,
       "pick": 1,
-      "cat": "Community",
-      "angle": "Evening of family fun downtown: sticker map, letters to Santa at Santa's House. Very visual.",
-      "src": "Springfield Regional Chamber",
-      "url": "https://www.springfieldvt.com/holiday-program"
+      "cat": "Kids & family",
+      "angle": "Claremont's traditional Friday-after-Thanksgiving lighting: Santa leads the countdown, then a procession through town. Big lights-on moment. 2026 date/time inferred from tradition; confirm with Parks & Rec.",
+      "src": "Claremont Parks & Recreation",
+      "url": "https://www.claremontnh.com/index.php?section=calendar-parks-and-rec-dept&evtid=258",
+      "verify": 1
     },
     {
       "id": "2026-12-04-celebrate-the-season-hanover-tree-lighting",
@@ -121,6 +107,20 @@
       "angle": "Annual tree lighting on the Green plus downtown festivities, from the Upper Valley Business Alliance.",
       "src": "GreaterUpperValley.com / UVBA calendar",
       "url": "https://www.hanovernh.org/701/Home-for-the-Holidays"
+    },
+    {
+      "id": "2026-12-04-springfield-downtown-holiday-program",
+      "d": "2026-12-04",
+      "t": "4:00 PM",
+      "title": "Springfield Downtown Holiday Program",
+      "town": "Springfield VT",
+      "mi": 10,
+      "venue": "Downtown Main Street (Santa's House)",
+      "free": 1,
+      "cat": "Community",
+      "angle": "Evening of family fun downtown: sticker map, letters to Santa at Santa's House. Very visual.",
+      "src": "Springfield Regional Chamber",
+      "url": "https://www.springfieldvt.com/holiday-program"
     },
     {
       "id": "2026-12-05-tis-the-season-winter-celebration",
@@ -138,6 +138,21 @@
       "url": "https://lebanonnh.gov/1559/Tis-the-Season"
     },
     {
+      "id": "2026-12-05-how-the-grinch-stole-christmas-safe-haven-ballet",
+      "d": "2026-12-05",
+      "t": "4:30 PM",
+      "title": "How the Grinch Stole Christmas (Safe Haven Ballet)",
+      "town": "Claremont",
+      "mi": 0,
+      "venue": "Claremont Opera House, 58 Opera House Sq.",
+      "free": 0,
+      "cost": "Ticketed (check price)",
+      "cat": "Arts",
+      "angle": "Local dance students stage the Grinch; rehearsal b-roll and young-dancer interviews.",
+      "src": "Claremont Opera House",
+      "url": "https://cohnh.org/events"
+    },
+    {
       "id": "2026-12-05-much-ado-about-nothing-mount-royal-academy",
       "d": "2026-12-05",
       "t": "7:00 PM (also Dec 6, 2:00 PM)",
@@ -151,6 +166,38 @@
       "angle": "Student Shakespeare on the opera house stage; rehearsal b-roll and cast interviews.",
       "src": "Newport Opera House",
       "url": "https://newportoperahouse.com/"
+    },
+    {
+      "id": "2026-12-11-clara-dreamz-contemporary-nutcracker",
+      "d": "2026-12-11",
+      "t": "Evening (also Dec 12)",
+      "title": "Clara Dreamz: A Contemporary Nutcracker",
+      "town": "Claremont",
+      "mi": 0,
+      "venue": "Claremont Opera House, 58 Opera House Sq.",
+      "free": 0,
+      "cost": "Ticketed (check price)",
+      "cat": "Arts",
+      "angle": "A new take on the Nutcracker on the Opera House stage; behind-the-scenes rehearsal story.",
+      "src": "Claremont Opera House",
+      "url": "https://cohnh.org/events",
+      "verify": 1
+    },
+    {
+      "id": "2026-12-12-twas-just-before-christmas",
+      "d": "2026-12-12",
+      "t": "4:00–7:00 PM",
+      "title": "'Twas Just Before Christmas",
+      "town": "Newport",
+      "mi": 9,
+      "venue": "Downtown Newport & Newport Opera House",
+      "free": 1,
+      "pick": 1,
+      "cat": "Community",
+      "angle": "Kids fill a passport with stamps from Main Street businesses and 'pay' with it for a photo with Santa in the Opera House. Very visual downtown story.",
+      "src": "Newport, NH holiday listings",
+      "url": "https://newportoperahouse.com/",
+      "verify": 1
     }
   ]
 }
