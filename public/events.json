@@ -1,6 +1,6 @@
 {
-  "updated": "2026-11-16",
-  "range": "Nov 16 – Dec 12, 2026",
+  "updated": "2026-11-19",
+  "range": "Nov 19 – Dec 12, 2026",
   "events": [
     {
       "id": "2026-11-20-gallery-of-gifts-library-arts-center",
@@ -168,6 +168,36 @@
       "url": "https://newportoperahouse.com/"
     },
     {
+      "id": "2026-12-10-a-little-lunch-music-holiday-concert",
+      "d": "2026-12-10",
+      "t": "12:00–1:00 PM",
+      "title": "A Little Lunch Music: Holiday Piano Concert",
+      "town": "Lebanon",
+      "mi": 20,
+      "venue": "Upper Valley Music Center, 8 South Park St.",
+      "free": 1,
+      "cat": "Arts",
+      "angle": "Free lunchtime holiday recital by pianist Will Ögmundson; easy midday shoot with music-center students and staff interviews.",
+      "src": "Upper Valley Music Center",
+      "url": "https://uvmusic.org/events",
+      "verify": 1
+    },
+    {
+      "id": "2026-12-11-bugbee-holiday-craft-fair",
+      "d": "2026-12-11",
+      "t": "1:00–5:00 PM (also Dec 12, 9 AM–2 PM)",
+      "title": "Bugbee Holiday Craft Fair",
+      "town": "White River Junction VT",
+      "mi": 25,
+      "venue": "Bugbee Senior Center, 262 North Main St.",
+      "free": 1,
+      "cat": "Health / seniors",
+      "angle": "Senior-center holiday craft fair: older makers selling handmade gifts, supporting the center. Confirm free admission.",
+      "src": "Eventbrite listing",
+      "url": "https://www.eventbrite.com/d/vt--windsor/christmas/",
+      "verify": 1
+    },
+    {
       "id": "2026-12-11-clara-dreamz-contemporary-nutcracker",
       "d": "2026-12-11",
       "t": "Evening (also Dec 12)",
@@ -181,6 +211,21 @@
       "angle": "A new take on the Nutcracker on the Opera House stage; behind-the-scenes rehearsal story.",
       "src": "Claremont Opera House",
       "url": "https://cohnh.org/events",
+      "verify": 1
+    },
+    {
+      "id": "2026-12-11-hanover-christmas-market",
+      "d": "2026-12-11",
+      "t": "6:00–9:00 PM (also Dec 12, 11 AM–4 PM)",
+      "title": "Hanover Christmas Market",
+      "town": "Hanover",
+      "mi": 22,
+      "venue": "Hanover Arts & Activities Center",
+      "free": 1,
+      "cat": "Market",
+      "angle": "Free European-style holiday market with local vendors; evening lights and shoppers make good b-roll.",
+      "src": "Hanover Arts & Activities Center",
+      "url": "https://www.hanoverarts.net/events",
       "verify": 1
     },
     {
